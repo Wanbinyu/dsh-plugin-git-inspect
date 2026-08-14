@@ -1,0 +1,13 @@
+# Apply this overlay to a composition that already provides dsh-tools,
+# dsh-system-prompt, and dsh-subprocess (for example examples/acp-agent/cordis.yml).
+- id: base
+  name: '@deepseek-ai/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+    patches:
+      - insert:
+          - id: git-inspect
+            name: dsh-plugin-git-inspect
+            config:
+              timeoutMs: 30000
+              maxOutputBytes: 200000
