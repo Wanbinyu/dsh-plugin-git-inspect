@@ -66,8 +66,10 @@ describe('dsh-plugin-git-inspect', () => {
   })
 
   it('registers the three read-only tools and prompt guidance', async () => {
-    expect(ctx.tools.schemas().map(schema => schema.name).sort()).toEqual(['git_diff', 'git_log', 'git_status'])
-    expect(renderPrompt(await ctx.systemPrompt.assemble())).toContain('Use git_status, git_diff, and git_log')
+    expect(ctx.tools.schemas().map(schema => schema.name).sort()).toEqual([
+      'git_diff', 'git_diff_stat', 'git_log', 'git_refs', 'git_show', 'git_status',
+    ])
+    expect(renderPrompt(await ctx.systemPrompt.assemble())).toContain('Use git_status, git_diff, git_diff_stat, git_log, git_show, and git_refs')
   })
 
   it('reports branch and untracked changes from the session cwd', async () => {
@@ -90,6 +92,22 @@ describe('dsh-plugin-git-inspect', () => {
     expect(staged.isError).toBe(false)
     expect(text(staged)).toContain('+after')
     expect(await readFile(join(workspace, 'tracked.txt'), 'utf8')).toBe('after\n')
+  })
+
+  it('returns a bounded diff summary, revision output, and refs', async () => {
+    await writeFile(join(workspace, 'tracked.txt'), 'after\n')
+    const stat = await call('git_diff_stat')
+    expect(stat.isError).toBe(false)
+    expect(text(stat)).toContain('tracked.txt')
+
+    const shown = await call('git_show', { revision: 'HEAD', path: 'tracked.txt' })
+    expect(shown.isError).toBe(false)
+    expect(text(shown)).toContain('initial fixture')
+    expect(text(shown)).toContain('before')
+
+    const refs = await call('git_refs', { maxCount: 1 })
+    expect(refs.isError).toBe(false)
+    expect(text(refs)).toMatch(/(main|master)\s+[0-9a-f]+/)
   })
 
   it('returns capped recent history and supports path filtering', async () => {
@@ -130,6 +148,10 @@ describe('argv construction', () => {
     const args = GitInspect.buildDiffArgs(false, '--danger.txt')
     expect(args.at(-2)).toBe('--')
     expect(args.at(-1)).toBe('--danger.txt')
+    expect(GitInspect.buildDiffStatArgs(false, '--danger.txt').at(-2)).toBe('--')
+    expect(GitInspect.buildShowArgs('--danger-revision', '--danger.txt')).toEqual(expect.arrayContaining([
+      '--end-of-options', '--danger-revision', '--', '--danger.txt',
+    ]))
   })
 
   it('caps requested log count in the tool presenter', () => {

@@ -34,7 +34,7 @@ export const Config: z<Config> = z.object({
 })
 
 type ResolvedConfig = Required<Config>
-type GitOperation = 'status' | 'diff' | 'log'
+type GitOperation = 'status' | 'diff' | 'diff_stat' | 'log' | 'show' | 'refs'
 
 export interface GitResult {
   operation: GitOperation
@@ -87,6 +87,20 @@ export function buildDiffArgs(staged: boolean, path?: string): string[] {
   ]
 }
 
+export function buildDiffStatArgs(staged: boolean, path?: string): string[] {
+  return [
+    ...GIT_PREFIX,
+    'diff',
+    '--stat',
+    '--no-ext-diff',
+    '--no-textconv',
+    '--no-color',
+    ...(staged ? ['--cached'] : []),
+    '--',
+    ...(path === undefined ? [] : [path]),
+  ]
+}
+
 export function buildLogArgs(maxCount: number, path?: string): string[] {
   return [
     ...GIT_PREFIX,
@@ -98,6 +112,35 @@ export function buildLogArgs(maxCount: number, path?: string): string[] {
     String(maxCount),
     '--',
     ...(path === undefined ? [] : [path]),
+  ]
+}
+
+export function buildShowArgs(revision: string, path?: string): string[] {
+  return [
+    ...GIT_PREFIX,
+    'show',
+    '--no-ext-diff',
+    '--no-textconv',
+    '--no-color',
+    '--format=fuller',
+    '--end-of-options',
+    revision,
+    '--',
+    ...(path === undefined ? [] : [path]),
+  ]
+}
+
+export function buildRefsArgs(maxCount: number): string[] {
+  return [
+    ...GIT_PREFIX,
+    'for-each-ref',
+    '--sort=-committerdate',
+    '--format=%(refname:short) %(objectname:short) %(committerdate:iso-strict)',
+    '--count',
+    String(maxCount),
+    'refs/heads',
+    'refs/remotes',
+    'refs/tags',
   ]
 }
 
@@ -133,6 +176,11 @@ function optionalPath(path: string | undefined): string | undefined {
     throw new Error('path must be a non-empty string when given')
   }
   return path
+}
+
+function requiredRevision(revision: string): string {
+  if (revision.trim().length === 0) throw new Error('revision must be a non-empty string')
+  return revision
 }
 
 function boundedLogCount(value: number | undefined, config: ResolvedConfig): number {
@@ -233,7 +281,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.systemPrompt.section({
     name: 'tool:git-inspect',
     order: 104,
-    text: 'Use git_status, git_diff, and git_log for read-only repository inspection. These tools do not commit, push, reset, stash, or modify files.',
+    text: 'Use git_status, git_diff, git_diff_stat, git_log, git_show, and git_refs for read-only repository inspection. These tools do not commit, push, reset, stash, or modify files.',
   })
 
   ctx.tools.register(defineTool({
@@ -247,6 +295,25 @@ export function apply(ctx: Context, config: Config = {}): void {
     },
     execute: (args, exec) => runGit(ctx, exec, 'status', buildStatusArgs(), resolved),
     presentCall: () => callView('Git status'),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_diff_stat',
+    description: 'Show a compact file-level summary of working-tree or staged changes. Read-only; use staged=true for the index.',
+    parameters: {
+      staged: { type: 'boolean', description: 'Show the staged index summary instead of the working-tree summary.' },
+      path: { type: 'string', description: 'Limit the summary to one repository-relative path.' },
+    },
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => {
+      const path = optionalPath(args.path)
+      return runGit(ctx, exec, 'diff_stat', buildDiffStatArgs(args.staged === true, path), resolved)
+    },
+    presentCall: args => callView(args.staged === true ? 'Git staged diff stat' : 'Git diff stat', args.path),
   }))
 
   ctx.tools.register(defineTool({
@@ -285,5 +352,40 @@ export function apply(ctx: Context, config: Config = {}): void {
       return runGit(ctx, exec, 'log', buildLogArgs(boundedLogCount(args.maxCount, resolved), path), resolved)
     },
     presentCall: args => callView(`Git log (${boundedLogCount(args.maxCount, resolved)} commits)`, args.path),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_show',
+    description: 'Show one Git revision, optionally limited to a repository-relative path. Read-only and output-bounded.',
+    parameters: {
+      revision: { type: 'string', required: true, description: 'Commit, tag, or other Git revision to display.' },
+      path: { type: 'string', description: 'Limit the revision output to one repository-relative path.' },
+    },
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => {
+      const revision = requiredRevision(args.revision)
+      const path = optionalPath(args.path)
+      return runGit(ctx, exec, 'show', buildShowArgs(revision, path), resolved)
+    },
+    presentCall: args => callView(`Git show ${args.revision}`, args.path),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_refs',
+    description: 'List recent local branches, remote-tracking branches, and tags. Read-only and capped by the plugin configuration.',
+    parameters: {
+      maxCount: { type: 'number', description: `Maximum refs to show, capped at ${resolved.maxLogCount}.` },
+    },
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => runGit(ctx, exec, 'refs', buildRefsArgs(boundedLogCount(args.maxCount, resolved)), resolved),
+    presentCall: args => callView(`Git refs (${boundedLogCount(args.maxCount, resolved)} refs)`, args.maxCount),
   }))
 }

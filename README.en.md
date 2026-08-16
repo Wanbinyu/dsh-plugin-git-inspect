@@ -11,13 +11,16 @@ Read-only Git visibility for agents running inside [DeepSeek Harness](https://gi
 
 ## What It Adds
 
-The plugin registers three model-facing tools:
+The plugin registers six read-only model-facing tools:
 
 | Tool | Purpose | Optional arguments |
 | --- | --- | --- |
 | `git_status` | Show the current branch and working-tree status. | None |
 | `git_diff` | Show the working-tree diff or the staged index diff. | `staged`, `path` |
+| `git_diff_stat` | Show a file-level summary of changes. | `staged`, `path` |
 | `git_log` | Show recent commits in compact one-line form. | `maxCount`, `path` |
+| `git_show` | Show a selected commit, tag, or other revision. | `revision`, `path` |
+| `git_refs` | List recent local branches, remote-tracking branches, and tags. | `maxCount` |
 
 The working directory comes from the active Harness session (`session.header.cwd`). When a session does not provide one, the plugin falls back to the host process working directory.
 
@@ -103,6 +106,10 @@ All limits must be positive integers. `defaultLogCount` cannot exceed `maxLogCou
 {"name":"git_log","arguments":{"maxCount":10,"path":"src/index.ts"}}
 ```
 
+```json
+{"name":"git_show","arguments":{"revision":"HEAD","path":"src/index.ts"}}
+```
+
 Non-zero Git exit codes, a missing repository, a blank path, an aborted request, or a terminated subprocess are reported as structured tool errors instead of being treated as successful output.
 
 ## Development
@@ -116,7 +123,7 @@ npm run build
 npm pack --dry-run
 ```
 
-The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, path-filtered history, bounded output, cancellation/error paths, and argv safety.
+The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, diff summaries, revisions, refs, path-filtered history, bounded output, cancellation/error paths, and argv safety. GitHub Actions runs type checking, tests, and the package dry-run on Node.js 22.
 
 ## Scope
 

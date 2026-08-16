@@ -11,13 +11,16 @@
 
 ## 功能
 
-插件向模型注册三个工具：
+插件向模型注册六个只读工具：
 
 | 工具 | 作用 | 可选参数 |
 | --- | --- | --- |
 | `git_status` | 查看当前分支和工作区状态。 | 无 |
 | `git_diff` | 查看工作区 diff 或暂存区 diff。 | `staged`、`path` |
+| `git_diff_stat` | 以文件为单位查看 diff 摘要。 | `staged`、`path` |
 | `git_log` | 以紧凑的一行格式查看最近提交。 | `maxCount`、`path` |
+| `git_show` | 查看指定提交、标签或其他 revision。 | `revision`、`path` |
+| `git_refs` | 查看最近的本地分支、远程跟踪分支和标签。 | `maxCount` |
 
 工作目录优先取当前 Harness 会话的 `session.header.cwd`；会话未提供目录时，回退到宿主进程的当前工作目录。
 
@@ -103,6 +106,10 @@ npm install github:Wanbinyu/dsh-plugin-git-inspect
 {"name":"git_log","arguments":{"maxCount":10,"path":"src/index.ts"}}
 ```
 
+```json
+{"name":"git_show","arguments":{"revision":"HEAD","path":"src/index.ts"}}
+```
+
 Git 返回非零退出码、目录不是仓库、路径为空、请求被取消或子进程异常终止时，插件会返回结构化工具错误，不会伪装成成功输出。
 
 ## 本地开发
@@ -116,7 +123,7 @@ npm run build
 npm pack --dry-run
 ```
 
-测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、路径过滤历史、输出限制、错误路径和 argv 安全性。
+测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、路径过滤历史、输出限制、错误路径和 argv 安全性。GitHub Actions 会在 Node.js 22 上执行类型检查、测试和打包检查。
 
 ## 项目边界
 
