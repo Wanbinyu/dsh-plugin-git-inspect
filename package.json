@@ -14,10 +14,17 @@
   "files": [
     "dist",
     "examples",
+    "cordis.patch.yml",
     "README.md",
+    "README.en.md",
     "README.zh-CN.md",
     "LICENSE"
   ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
   "keywords": [
     "deepseek-harness",
     "dsh-plugin",

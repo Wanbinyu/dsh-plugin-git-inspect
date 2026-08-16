@@ -1,0 +1,10 @@
+- insert:
+    - id: git-inspect
+      name: dsh-plugin-git-inspect
+      config:
+        timeoutMs: 30000
+        maxOutputBytes: 200000
+        stderrMaxBytes: 16384
+        graceMs: 1000
+        defaultLogCount: 20
+        maxLogCount: 100

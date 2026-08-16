@@ -1,60 +1,66 @@
 # dsh-plugin-git-inspect
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[简体中文](README.md) | [English](README.en.md)
 
-Read-only Git visibility for agents running inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+[![许可证：MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的只读 Git 检查插件。
 
 > [!NOTE]
-> This is an independent community plugin. It is not part of the official DeepSeek Harness distribution.
+> 这是独立的社区插件，不属于 DeepSeek Harness 官方发行版。
 
-## What it adds
+## 功能
 
-The plugin registers three model-facing tools:
+插件向模型注册三个工具：
 
-| Tool | Purpose | Optional arguments |
+| 工具 | 作用 | 可选参数 |
 | --- | --- | --- |
-| `git_status` | Show the current branch and working-tree status. | None |
-| `git_diff` | Show the working-tree diff or the staged index diff. | `staged`, `path` |
-| `git_log` | Show recent commits in compact one-line form. | `maxCount`, `path` |
+| `git_status` | 查看当前分支和工作区状态。 | 无 |
+| `git_diff` | 查看工作区 diff 或暂存区 diff。 | `staged`、`path` |
+| `git_log` | 以紧凑的一行格式查看最近提交。 | `maxCount`、`path` |
 
-The working directory comes from the active Harness session (`session.header.cwd`). When a session does not provide one, the plugin falls back to the host process working directory.
+工作目录优先取当前 Harness 会话的 `session.header.cwd`；会话未提供目录时，回退到宿主进程的当前工作目录。
 
-## Safety model
+## 安全边界
 
-The plugin is intentionally narrow:
+- 不执行 shell。插件通过 Harness 的 subprocess 服务解析 `git`，并使用固定的 argv 启动进程。
+- 用户传入的路径始终放在 Git 的 `--` pathspec 分隔符之后，不经过 shell 展开。
+- 关闭 pager、颜色、外部 diff、textconv、可选 Git 锁和终端交互提示，保证自动化输出稳定。
+- 只提供检查操作，不提供 `commit`、`push`、`reset`、`stash`、切换分支或文件修改能力。
+- 转发 Harness 的取消信号，并限制 stdout/stderr 的捕获大小。
+- 输出达到上限时，结果会明确标记为截断。
 
-- It never invokes a shell. `git` is resolved through the Harness subprocess service and started with a fixed argv vector.
-- User paths are passed after Git's `--` pathspec separator; shell expansion is never involved.
-- Pager, color, external diff, text conversion, optional Git locks, and terminal prompts are disabled for predictable automation.
-- Only inspection commands are exposed. There is no `commit`, `push`, `reset`, `stash`, checkout, or file-editing tool.
-- The Harness cancellation signal is forwarded to the child process.
-- stdout and stderr are bounded by configuration; the result reports when output was truncated.
+## 环境要求
 
-## Requirements
-
-- Windows, macOS, or Linux with `git` available on the host PATH.
-- Node.js `>=22.19.0`.
-- A DeepSeek Harness developer-preview composition providing:
+- Windows、macOS 或 Linux，且宿主 PATH 中可以找到 `git`。
+- Node.js `>=22.19.0`。
+- Harness 组合需要提供：
   - `@deepseek-ai/dsh-tools`
   - `@deepseek-ai/dsh-system-prompt`
   - `@deepseek-ai/dsh-subprocess`
-- A subprocess implementation, such as `@deepseek-ai/dsh-subprocess-local`.
+- 还需要一个 subprocess 实现，例如 `@deepseek-ai/dsh-subprocess-local`。
 
-The package currently targets the Harness `0.1.0-rc.x` line and is not published to npm yet.
+当前插件面向 Harness `0.1.0-rc.x` 开发预览版本。
 
-## Install From GitHub
+## 作为 bundle 安装
 
-Install the current repository version into the project that owns your Harness composition:
+仓库根目录包含 `cordis.patch.yml`，并在 `package.json` 中声明了 `dsh.bundle`。在已经安装 Harness CLI 的环境中，可以将它加入 `web` profile：
+
+```sh
+dsh plugin --profile web add github:Wanbinyu/dsh-plugin-git-inspect
+```
+
+安装后重启 dsh。bundle 会自动插入 `git-inspect` 配置行，并安装插件运行时。也可以直接查看或修改 [`cordis.patch.yml`](cordis.patch.yml)。
+
+## 手动安装
+
+如果宿主项目需要自己控制组合层，也可以安装包后手动插入：
 
 ```sh
 npm install github:Wanbinyu/dsh-plugin-git-inspect
 ```
 
-The package's `prepare` script builds its TypeScript entrypoint during a Git-based install, so the published runtime is available under `dist/`.
-
-## Configure
-
-Add the plugin to a Cordis composition that already mounts the required Harness services:
+在已经挂载 Harness 必需服务的 Cordis 组合中加入：
 
 ```yaml
 - id: git-inspect
@@ -68,24 +74,22 @@ Add the plugin to a Cordis composition that already mounts the required Harness 
     maxLogCount: 100
 ```
 
-The repository includes an overlay example at [`examples/cordis.yml`](examples/cordis.yml). The overlay does not install a subprocess provider; that remains a host composition responsibility.
+仓库中的 [`examples/cordis.yml`](examples/cordis.yml) 提供了 overlay 示例。该示例不会自动安装 subprocess provider，provider 仍由宿主组合负责。
 
-### Configuration
+### 配置项
 
-All limits must be positive integers. `defaultLogCount` cannot exceed `maxLogCount`.
+所有限制必须是正整数，且 `defaultLogCount` 不能大于 `maxLogCount`。
 
-| Option | Default | Effect |
+| 配置项 | 默认值 | 作用 |
 | --- | ---: | --- |
-| `timeoutMs` | `30000` | Maximum tool execution time supplied to Harness tools. |
-| `maxOutputBytes` | `200000` | stdout capture limit. |
-| `stderrMaxBytes` | `16384` | stderr capture limit. |
-| `graceMs` | `1000` | Termination grace period for the Git subprocess. |
-| `defaultLogCount` | `20` | Commit count used when `git_log.maxCount` is omitted. |
-| `maxLogCount` | `100` | Upper bound for `git_log.maxCount`. |
+| `timeoutMs` | `30000` | 传递给 Harness 工具的最长执行时间。 |
+| `maxOutputBytes` | `200000` | stdout 捕获上限。 |
+| `stderrMaxBytes` | `16384` | stderr 捕获上限。 |
+| `graceMs` | `1000` | Git 子进程终止时的宽限时间。 |
+| `defaultLogCount` | `20` | 未传 `git_log.maxCount` 时的提交数量。 |
+| `maxLogCount` | `100` | `git_log.maxCount` 的最大值。 |
 
-## Tool Calls
-
-Typical calls look like this:
+## 工具调用示例
 
 ```json
 {"name":"git_status","arguments":{}}
@@ -99,9 +103,9 @@ Typical calls look like this:
 {"name":"git_log","arguments":{"maxCount":10,"path":"src/index.ts"}}
 ```
 
-Non-zero Git exit codes become structured tool errors. A missing repository, a blank path, an aborted request, or a terminated subprocess is reported instead of being treated as successful output.
+Git 返回非零退出码、目录不是仓库、路径为空、请求被取消或子进程异常终止时，插件会返回结构化工具错误，不会伪装成成功输出。
 
-## Development
+## 本地开发
 
 ```sh
 git clone https://github.com/Wanbinyu/dsh-plugin-git-inspect.git
@@ -112,19 +116,19 @@ npm run build
 npm pack --dry-run
 ```
 
-The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, path-filtered history, bounded output, cancellation/error paths, and argv safety.
+测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、路径过滤历史、输出限制、错误路径和 argv 安全性。
 
-## Scope
+## 项目边界
 
-This plugin is a read-only inspection surface for agent workflows. Write operations, remote synchronization, branch switching, worktree management, and file editing are deliberately out of scope. Keeping those actions separate makes it easier for a host composition to apply its own approval policy.
+这是一个面向 Agent 工作流的只读检查层。写操作、远程同步、分支切换、worktree 管理和文件编辑均不在范围内，便于宿主组合单独制定审批策略。
 
-## Links
+## 链接
 
 - [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
-- [GitHub repository](https://github.com/Wanbinyu/dsh-plugin-git-inspect)
+- [GitHub 仓库](https://github.com/Wanbinyu/dsh-plugin-git-inspect)
 - [Issues](https://github.com/Wanbinyu/dsh-plugin-git-inspect/issues)
-- [简体中文说明](README.zh-CN.md)
+- [English README](README.en.md)
 
-## License
+## 许可证
 
-MIT. See [`LICENSE`](LICENSE).
+MIT，详见 [`LICENSE`](LICENSE)。
