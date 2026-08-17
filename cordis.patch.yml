@@ -8,3 +8,5 @@
         graceMs: 1000
         defaultLogCount: 20
         maxLogCount: 100
+        defaultBlameLineCount: 50
+        maxBlameLineCount: 200

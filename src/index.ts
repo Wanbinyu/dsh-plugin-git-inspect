@@ -14,6 +14,8 @@ export const DEFAULT_STDERR_MAX_BYTES = 16_384
 export const DEFAULT_GRACE_MS = 1_000
 export const DEFAULT_LOG_COUNT = 20
 export const DEFAULT_MAX_LOG_COUNT = 100
+export const DEFAULT_BLAME_LINE_COUNT = 50
+export const DEFAULT_MAX_BLAME_LINE_COUNT = 200
 
 export interface Config {
   timeoutMs?: number
@@ -22,6 +24,8 @@ export interface Config {
   graceMs?: number
   defaultLogCount?: number
   maxLogCount?: number
+  defaultBlameLineCount?: number
+  maxBlameLineCount?: number
 }
 
 export const Config: z<Config> = z.object({
@@ -31,10 +35,12 @@ export const Config: z<Config> = z.object({
   graceMs: z.number().default(DEFAULT_GRACE_MS),
   defaultLogCount: z.number().default(DEFAULT_LOG_COUNT),
   maxLogCount: z.number().default(DEFAULT_MAX_LOG_COUNT),
+  defaultBlameLineCount: z.number().default(DEFAULT_BLAME_LINE_COUNT),
+  maxBlameLineCount: z.number().default(DEFAULT_MAX_BLAME_LINE_COUNT),
 })
 
 type ResolvedConfig = Required<Config>
-type GitOperation = 'status' | 'diff' | 'diff_stat' | 'log' | 'show' | 'refs'
+type GitOperation = 'status' | 'diff' | 'diff_stat' | 'log' | 'show' | 'refs' | 'conflicts' | 'blame' | 'stash_list' | 'worktree_list'
 
 export interface GitResult {
   operation: GitOperation
@@ -144,6 +150,52 @@ export function buildRefsArgs(maxCount: number): string[] {
   ]
 }
 
+export function buildConflictsArgs(path?: string): string[] {
+  return [
+    ...GIT_PREFIX,
+    'diff',
+    '--name-only',
+    '--diff-filter=U',
+    '--no-ext-diff',
+    '--no-color',
+    '--',
+    ...(path === undefined ? [] : [path]),
+  ]
+}
+
+export function buildBlameArgs(path: string, startLine: number, lineCount: number): string[] {
+  return [
+    ...GIT_PREFIX,
+    'blame',
+    '--no-progress',
+    '--date=short',
+    '-L',
+    `${startLine},+${lineCount}`,
+    '--',
+    path,
+  ]
+}
+
+export function buildStashListArgs(maxCount: number): string[] {
+  return [
+    ...GIT_PREFIX,
+    'stash',
+    'list',
+    '--format=%gd %h %ci %s',
+    '-n',
+    String(maxCount),
+  ]
+}
+
+export function buildWorktreeListArgs(): string[] {
+  return [
+    ...GIT_PREFIX,
+    'worktree',
+    'list',
+    '--porcelain',
+  ]
+}
+
 function assertPositiveInteger(name: string, value: number): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw new Error(`git-inspect: ${name} must be a positive integer`)
@@ -158,6 +210,8 @@ function resolveConfig(config: Config): ResolvedConfig {
     graceMs: config.graceMs ?? DEFAULT_GRACE_MS,
     defaultLogCount: config.defaultLogCount ?? DEFAULT_LOG_COUNT,
     maxLogCount: config.maxLogCount ?? DEFAULT_MAX_LOG_COUNT,
+    defaultBlameLineCount: config.defaultBlameLineCount ?? DEFAULT_BLAME_LINE_COUNT,
+    maxBlameLineCount: config.maxBlameLineCount ?? DEFAULT_MAX_BLAME_LINE_COUNT,
   }
   assertPositiveInteger('timeoutMs', resolved.timeoutMs)
   assertPositiveInteger('maxOutputBytes', resolved.maxOutputBytes)
@@ -165,8 +219,13 @@ function resolveConfig(config: Config): ResolvedConfig {
   assertPositiveInteger('graceMs', resolved.graceMs)
   assertPositiveInteger('defaultLogCount', resolved.defaultLogCount)
   assertPositiveInteger('maxLogCount', resolved.maxLogCount)
+  assertPositiveInteger('defaultBlameLineCount', resolved.defaultBlameLineCount)
+  assertPositiveInteger('maxBlameLineCount', resolved.maxBlameLineCount)
   if (resolved.defaultLogCount > resolved.maxLogCount) {
     throw new Error('git-inspect: defaultLogCount must not exceed maxLogCount')
+  }
+  if (resolved.defaultBlameLineCount > resolved.maxBlameLineCount) {
+    throw new Error('git-inspect: defaultBlameLineCount must not exceed maxBlameLineCount')
   }
   return resolved
 }
@@ -183,10 +242,27 @@ function requiredRevision(revision: string): string {
   return revision
 }
 
+function requiredPath(path: string): string {
+  if (path.trim().length === 0) throw new Error('path must be a non-empty string')
+  return path
+}
+
 function boundedLogCount(value: number | undefined, config: ResolvedConfig): number {
   const count = value ?? config.defaultLogCount
   assertPositiveInteger('maxCount', count)
   return Math.min(count, config.maxLogCount)
+}
+
+function boundedBlameRange(
+  startLine: number | undefined,
+  lineCount: number | undefined,
+  config: ResolvedConfig,
+): { startLine: number; lineCount: number } {
+  const start = startLine ?? 1
+  const count = lineCount ?? config.defaultBlameLineCount
+  assertPositiveInteger('startLine', start)
+  assertPositiveInteger('lineCount', count)
+  return { startLine: start, lineCount: Math.min(count, config.maxBlameLineCount) }
 }
 
 function normalize(text: string): string {
@@ -281,7 +357,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.systemPrompt.section({
     name: 'tool:git-inspect',
     order: 104,
-    text: 'Use git_status, git_diff, git_diff_stat, git_log, git_show, and git_refs for read-only repository inspection. These tools do not commit, push, reset, stash, or modify files.',
+    text: 'Use git_status, git_diff, git_diff_stat, git_log, git_show, git_refs, git_conflicts, git_blame, git_stash_list, and git_worktree_list for read-only repository inspection. These tools do not commit, push, reset, create stashes, switch worktrees, or modify files.',
   })
 
   ctx.tools.register(defineTool({
@@ -387,5 +463,75 @@ export function apply(ctx: Context, config: Config = {}): void {
     },
     execute: (args, exec) => runGit(ctx, exec, 'refs', buildRefsArgs(boundedLogCount(args.maxCount, resolved)), resolved),
     presentCall: args => callView(`Git refs (${boundedLogCount(args.maxCount, resolved)} refs)`, args.maxCount),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_conflicts',
+    description: 'List unresolved merge-conflict paths in the index. Read-only and optionally limited to one repository-relative path.',
+    parameters: {
+      path: { type: 'string', description: 'Limit conflict inspection to one repository-relative path.' },
+    },
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => {
+      const path = optionalPath(args.path)
+      return runGit(ctx, exec, 'conflicts', buildConflictsArgs(path), resolved)
+    },
+    presentCall: args => callView('Git conflicts', args.path),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_blame',
+    description: 'Show bounded line attribution for one tracked file. Read-only; the requested line count is capped by plugin configuration.',
+    parameters: {
+      path: { type: 'string', required: true, description: 'Repository-relative tracked file to inspect.' },
+      startLine: { type: 'number', description: 'First one-based line to inspect; defaults to 1.' },
+      lineCount: { type: 'number', description: `Number of lines to inspect, capped at ${resolved.maxBlameLineCount}.` },
+    },
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => {
+      const path = requiredPath(args.path)
+      const range = boundedBlameRange(args.startLine, args.lineCount, resolved)
+      return runGit(ctx, exec, 'blame', buildBlameArgs(path, range.startLine, range.lineCount), resolved)
+    },
+    presentCall: args => {
+      const range = boundedBlameRange(args.startLine, args.lineCount, resolved)
+      return callView(`Git blame ${range.startLine},+${range.lineCount}`, args.path)
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_stash_list',
+    description: 'List recent stash entries without creating, applying, or dropping a stash. Read-only and capped by plugin configuration.',
+    parameters: {
+      maxCount: { type: 'number', description: `Maximum stash entries to show, capped at ${resolved.maxLogCount}.` },
+    },
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => runGit(ctx, exec, 'stash_list', buildStashListArgs(boundedLogCount(args.maxCount, resolved)), resolved),
+    presentCall: args => callView(`Git stashes (${boundedLogCount(args.maxCount, resolved)} entries)`, args.maxCount),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'git_worktree_list',
+    description: 'List registered Git worktrees in stable porcelain format. Read-only; does not add, move, lock, or remove worktrees.',
+    parameters: {},
+    timeoutMs: resolved.timeoutMs,
+    output: {
+      schema: gitOutputSchema,
+      render: (_args, value) => [{ type: 'text', text: renderResult(value) }],
+    },
+    execute: (args, exec) => runGit(ctx, exec, 'worktree_list', buildWorktreeListArgs(), resolved),
+    presentCall: () => callView('Git worktrees'),
   }))
 }

@@ -11,7 +11,7 @@
 
 ## 功能
 
-插件向模型注册六个只读工具：
+插件向模型注册十个只读工具：
 
 | 工具 | 作用 | 可选参数 |
 | --- | --- | --- |
@@ -21,6 +21,10 @@
 | `git_log` | 以紧凑的一行格式查看最近提交。 | `maxCount`、`path` |
 | `git_show` | 查看指定提交、标签或其他 revision。 | `revision`、`path` |
 | `git_refs` | 查看最近的本地分支、远程跟踪分支和标签。 | `maxCount` |
+| `git_conflicts` | 列出尚未解决的合并冲突文件。 | `path` |
+| `git_blame` | 查看指定文件一段行号范围的提交归属。 | `path`、`startLine`、`lineCount` |
+| `git_stash_list` | 查看最近的 stash，不创建或应用 stash。 | `maxCount` |
+| `git_worktree_list` | 以稳定格式查看已注册的 worktree。 | 无 |
 
 工作目录优先取当前 Harness 会话的 `session.header.cwd`；会话未提供目录时，回退到宿主进程的当前工作目录。
 
@@ -32,6 +36,7 @@
 - 只提供检查操作，不提供 `commit`、`push`、`reset`、`stash`、切换分支或文件修改能力。
 - 转发 Harness 的取消信号，并限制 stdout/stderr 的捕获大小。
 - 输出达到上限时，结果会明确标记为截断。
+- `git_blame` 默认最多返回 50 行，配置允许的上限为 200 行，避免整文件归属信息挤占上下文。
 
 ## 环境要求
 
@@ -75,13 +80,15 @@ npm install github:Wanbinyu/dsh-plugin-git-inspect
     graceMs: 1000
     defaultLogCount: 20
     maxLogCount: 100
+    defaultBlameLineCount: 50
+    maxBlameLineCount: 200
 ```
 
 仓库中的 [`examples/cordis.yml`](examples/cordis.yml) 提供了 overlay 示例。该示例不会自动安装 subprocess provider，provider 仍由宿主组合负责。
 
 ### 配置项
 
-所有限制必须是正整数，且 `defaultLogCount` 不能大于 `maxLogCount`。
+所有限制必须是正整数；默认数量不能大于对应的最大数量。
 
 | 配置项 | 默认值 | 作用 |
 | --- | ---: | --- |
@@ -91,6 +98,8 @@ npm install github:Wanbinyu/dsh-plugin-git-inspect
 | `graceMs` | `1000` | Git 子进程终止时的宽限时间。 |
 | `defaultLogCount` | `20` | 未传 `git_log.maxCount` 时的提交数量。 |
 | `maxLogCount` | `100` | `git_log.maxCount` 的最大值。 |
+| `defaultBlameLineCount` | `50` | 未传 `git_blame.lineCount` 时的行数。 |
+| `maxBlameLineCount` | `200` | `git_blame.lineCount` 的最大值。 |
 
 ## 工具调用示例
 
@@ -110,6 +119,22 @@ npm install github:Wanbinyu/dsh-plugin-git-inspect
 {"name":"git_show","arguments":{"revision":"HEAD","path":"src/index.ts"}}
 ```
 
+```json
+{"name":"git_conflicts","arguments":{}}
+```
+
+```json
+{"name":"git_blame","arguments":{"path":"src/index.ts","startLine":20,"lineCount":30}}
+```
+
+```json
+{"name":"git_stash_list","arguments":{"maxCount":10}}
+```
+
+```json
+{"name":"git_worktree_list","arguments":{}}
+```
+
 Git 返回非零退出码、目录不是仓库、路径为空、请求被取消或子进程异常终止时，插件会返回结构化工具错误，不会伪装成成功输出。
 
 ## 本地开发
@@ -123,7 +148,7 @@ npm run build
 npm pack --dry-run
 ```
 
-测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、路径过滤历史、输出限制、错误路径和 argv 安全性。GitHub Actions 会在 Node.js 22 上执行类型检查、测试和打包检查。
+测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、冲突、blame、stash、worktree、路径过滤历史、输出限制、错误路径和 argv 安全性。GitHub Actions 会在 Node.js 22 上执行类型检查、测试和打包检查。
 
 ## 项目边界
 

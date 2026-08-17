@@ -65,11 +65,12 @@ describe('dsh-plugin-git-inspect', () => {
     await rm(workspace, { recursive: true, force: true })
   })
 
-  it('registers the three read-only tools and prompt guidance', async () => {
+  it('registers the read-only tools and prompt guidance', async () => {
     expect(ctx.tools.schemas().map(schema => schema.name).sort()).toEqual([
-      'git_diff', 'git_diff_stat', 'git_log', 'git_refs', 'git_show', 'git_status',
+      'git_blame', 'git_conflicts', 'git_diff', 'git_diff_stat', 'git_log',
+      'git_refs', 'git_show', 'git_stash_list', 'git_status', 'git_worktree_list',
     ])
-    expect(renderPrompt(await ctx.systemPrompt.assemble())).toContain('Use git_status, git_diff, git_diff_stat, git_log, git_show, and git_refs')
+    expect(renderPrompt(await ctx.systemPrompt.assemble())).toContain('git_conflicts, git_blame, git_stash_list, and git_worktree_list')
   })
 
   it('reports branch and untracked changes from the session cwd', async () => {
@@ -120,6 +121,43 @@ describe('dsh-plugin-git-inspect', () => {
     expect(text(result)).not.toContain('initial fixture')
   })
 
+  it('shows bounded blame, stash entries, and registered worktrees without changing them', async () => {
+    const blame = await call('git_blame', { path: 'tracked.txt', startLine: 1, lineCount: 1_000 })
+    expect(blame.isError).toBe(false)
+    expect(text(blame)).toContain('Harness Test')
+    expect(text(blame)).toContain('before')
+
+    await writeFile(join(workspace, 'tracked.txt'), 'stashed\n')
+    await git(['stash', 'push', '-m', 'fixture stash'])
+    const stashes = await call('git_stash_list', { maxCount: 1 })
+    expect(stashes.isError).toBe(false)
+    expect(text(stashes)).toContain('stash@{0}')
+    expect(text(stashes)).toContain('fixture stash')
+
+    const worktrees = await call('git_worktree_list')
+    expect(worktrees.isError).toBe(false)
+    expect(text(worktrees)).toContain(`worktree ${workspace.replaceAll('\\', '/')}`)
+    expect(text(worktrees)).toContain('HEAD ')
+  })
+
+  it('lists unresolved conflict paths without resolving or modifying them', async () => {
+    await git(['checkout', '-q', '-b', 'conflict-base'])
+    await git(['checkout', '-q', '-b', 'incoming'])
+    await writeFile(join(workspace, 'tracked.txt'), 'incoming\n')
+    await git(['add', 'tracked.txt'])
+    await git(['commit', '-q', '-m', 'incoming change'])
+    await git(['checkout', '-q', 'conflict-base'])
+    await writeFile(join(workspace, 'tracked.txt'), 'base\n')
+    await git(['add', 'tracked.txt'])
+    await git(['commit', '-q', '-m', 'base change'])
+
+    await expect(git(['merge', 'incoming'])).rejects.toThrow()
+    const conflicts = await call('git_conflicts')
+    expect(conflicts.isError).toBe(false)
+    expect(text(conflicts)).toContain('tracked.txt')
+    expect(await readFile(join(workspace, 'tracked.txt'), 'utf8')).toContain('<<<<<<<')
+  })
+
   it('rejects blank paths and reports a missing repository as an error', async () => {
     const invalid = await call('git_diff', { path: '  ' })
     expect(invalid.isError).toBe(true)
@@ -151,6 +189,11 @@ describe('argv construction', () => {
     expect(GitInspect.buildDiffStatArgs(false, '--danger.txt').at(-2)).toBe('--')
     expect(GitInspect.buildShowArgs('--danger-revision', '--danger.txt')).toEqual(expect.arrayContaining([
       '--end-of-options', '--danger-revision', '--', '--danger.txt',
+    ]))
+    expect(GitInspect.buildConflictsArgs('--danger.txt').at(-2)).toBe('--')
+    expect(GitInspect.buildConflictsArgs('--danger.txt').at(-1)).toBe('--danger.txt')
+    expect(GitInspect.buildBlameArgs('--danger.txt', 2, 5)).toEqual(expect.arrayContaining([
+      '-L', '2,+5', '--', '--danger.txt',
     ]))
   })
 
