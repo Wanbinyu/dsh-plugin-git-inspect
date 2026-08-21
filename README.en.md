@@ -48,14 +48,14 @@ The working directory comes from the active Harness session (`session.header.cwd
   - `@deepseek-ai/dsh-subprocess`
 - A subprocess implementation, such as `@deepseek-ai/dsh-subprocess-local`.
 
-The plugin currently targets the Harness `0.1.0-rc.x` developer-preview line.
+`v0.3.1` is type-checked, tested, built, and package-validated against DeepSeek Harness `0.1.1-rc.1` while retaining a compatibility branch for `0.1.0-rc.5` through `rc.8`.
 
 ## Install As A Bundle
 
 The repository ships `cordis.patch.yml` and declares `dsh.bundle` in `package.json`. With the Harness CLI installed, add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add github:Wanbinyu/dsh-plugin-git-inspect
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.1/dsh-plugin-git-inspect-0.3.1.tgz
 ```
 
 Restart dsh after installation. The bundle inserts the `git-inspect` row and installs the plugin runtime. You can inspect or customize [`cordis.patch.yml`](cordis.patch.yml).

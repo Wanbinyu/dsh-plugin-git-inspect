@@ -48,14 +48,14 @@
   - `@deepseek-ai/dsh-subprocess`
 - 还需要一个 subprocess 实现，例如 `@deepseek-ai/dsh-subprocess-local`。
 
-当前插件面向 Harness `0.1.0-rc.x` 开发预览版本。
+`v0.3.1` 已使用 DeepSeek Harness `0.1.1-rc.1` 完成类型、测试、构建和打包验证，并保留 `0.1.0-rc.5` 至 `rc.8` 的兼容分支。
 
 ## 作为 bundle 安装
 
 仓库根目录包含 `cordis.patch.yml`，并在 `package.json` 中声明了 `dsh.bundle`。在已经安装 Harness CLI 的环境中，可以将它加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:Wanbinyu/dsh-plugin-git-inspect
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.1/dsh-plugin-git-inspect-0.3.1.tgz
 ```
 
 安装后重启 dsh。bundle 会自动插入 `git-inspect` 配置行，并安装插件运行时。也可以直接查看或修改 [`cordis.patch.yml`](cordis.patch.yml)。
