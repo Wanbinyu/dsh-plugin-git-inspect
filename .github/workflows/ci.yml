@@ -10,9 +10,11 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node-version: [22.x]
     steps:
       - uses: actions/checkout@v7
@@ -22,4 +24,3 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
-      - run: npm pack --dry-run

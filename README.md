@@ -48,14 +48,14 @@
   - `@deepseek-ai/dsh-subprocess`
 - 还需要一个 subprocess 实现，例如 `@deepseek-ai/dsh-subprocess-local`。
 
-`v0.3.1` 已使用 DeepSeek Harness `0.1.1-rc.1` 完成类型、测试、构建和打包验证，并保留 `0.1.0-rc.5` 至 `rc.8` 的兼容分支。
+`v0.3.2` 已使用 DeepSeek Harness `0.1.1-rc.2` 完成类型、测试、构建和打包验证，并保留 `0.1.0-rc.5` 至 `rc.8`、`0.1.1-rc.1` 的兼容分支。
 
 ## 作为 bundle 安装
 
 仓库根目录包含 `cordis.patch.yml`，并在 `package.json` 中声明了 `dsh.bundle`。在已经安装 Harness CLI 的环境中，可以将它加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.1/dsh-plugin-git-inspect-0.3.1.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.2/dsh-plugin-git-inspect-0.3.2.tgz
 ```
 
 安装后重启 dsh。bundle 会自动插入 `git-inspect` 配置行，并安装插件运行时。也可以直接查看或修改 [`cordis.patch.yml`](cordis.patch.yml)。
@@ -144,11 +144,9 @@ git clone https://github.com/Wanbinyu/dsh-plugin-git-inspect.git
 cd dsh-plugin-git-inspect
 npm install
 npm run verify
-npm run build
-npm pack --dry-run
 ```
 
-测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、冲突、blame、stash、worktree、路径过滤历史、输出限制、错误路径和 argv 安全性。GitHub Actions 会在 Node.js 22 上执行类型检查、测试和打包检查。
+测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、冲突、blame、stash、worktree、路径过滤历史、输出限制、错误路径和 argv 安全性。`verify` 会执行类型检查、测试、构建和安装包内容检查；GitHub Actions 会在 Node.js 22 的 Ubuntu 与 Windows 环境中运行它。
 
 ## 项目边界
 

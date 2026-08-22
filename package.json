@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-git-inspect",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Read-only Git inspection tools for DeepSeek Harness",
   "type": "module",
   "main": "dist/index.js",
@@ -47,7 +47,8 @@
     "prepare": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "verify": "npm run typecheck && npm test"
+    "pack:check": "npm pack --dry-run",
+    "verify": "npm run typecheck && npm test && npm run build && npm run pack:check"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1 <5",
@@ -60,11 +61,11 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.1",
-    "@deepseek-ai/dsh-llm": "0.1.1-rc.1",
-    "@deepseek-ai/dsh-subprocess": "0.1.1-rc.1",
-    "@deepseek-ai/dsh-subprocess-local": "0.1.1-rc.1",
-    "@deepseek-ai/dsh-system-prompt": "0.1.1-rc.1",
-    "@deepseek-ai/dsh-tools": "0.1.1-rc.1",
+    "@deepseek-ai/dsh-llm": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-subprocess": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-subprocess-local": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2",
     "@types/node": "^22.20.0",
     "typescript": "5.9.3",
     "vitest": "^4.1.8"

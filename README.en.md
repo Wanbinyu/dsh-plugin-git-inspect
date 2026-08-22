@@ -48,14 +48,14 @@ The working directory comes from the active Harness session (`session.header.cwd
   - `@deepseek-ai/dsh-subprocess`
 - A subprocess implementation, such as `@deepseek-ai/dsh-subprocess-local`.
 
-`v0.3.1` is type-checked, tested, built, and package-validated against DeepSeek Harness `0.1.1-rc.1` while retaining a compatibility branch for `0.1.0-rc.5` through `rc.8`.
+`v0.3.2` is type-checked, tested, built, and package-validated against DeepSeek Harness `0.1.1-rc.2` while retaining compatibility with `0.1.0-rc.5` through `rc.8` and `0.1.1-rc.1`.
 
 ## Install As A Bundle
 
 The repository ships `cordis.patch.yml` and declares `dsh.bundle` in `package.json`. With the Harness CLI installed, add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.1/dsh-plugin-git-inspect-0.3.1.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.2/dsh-plugin-git-inspect-0.3.2.tgz
 ```
 
 Restart dsh after installation. The bundle inserts the `git-inspect` row and installs the plugin runtime. You can inspect or customize [`cordis.patch.yml`](cordis.patch.yml).
@@ -144,11 +144,9 @@ git clone https://github.com/Wanbinyu/dsh-plugin-git-inspect.git
 cd dsh-plugin-git-inspect
 npm install
 npm run verify
-npm run build
-npm pack --dry-run
 ```
 
-The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, diff summaries, revisions, refs, conflicts, blame, stashes, worktrees, path-filtered history, bounded output, cancellation/error paths, and argv safety. GitHub Actions runs type checking, tests, and the package dry-run on Node.js 22.
+The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, diff summaries, revisions, refs, conflicts, blame, stashes, worktrees, path-filtered history, bounded output, cancellation/error paths, and argv safety. `verify` runs type checking, tests, the build, and package-content validation; GitHub Actions executes it on Node.js 22 under both Ubuntu and Windows.
 
 ## Scope
 
