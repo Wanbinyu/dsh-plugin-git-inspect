@@ -146,7 +146,7 @@ npm install
 npm run verify
 ```
 
-测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、冲突、blame、stash、worktree、路径过滤历史、输出限制、错误路径和 argv 安全性。`verify` 会执行类型检查、测试、构建和安装包内容检查；GitHub Actions 会在 Node.js 22 的 Ubuntu 与 Windows 环境中运行它。
+测试会创建临时 Git 仓库，并通过 Harness 的本地 subprocess provider 调用真实 `git`，覆盖分支状态、工作区和暂存区 diff、diff 摘要、revision、refs、冲突、blame、stash、worktree、路径过滤历史、输出限制、错误路径和 argv 安全性。`verify` 会执行类型检查、测试、构建和安装包内容检查；GitHub Actions 会在 Node.js 22 的 Ubuntu、Windows 与 macOS 环境中运行它。
 
 ## 项目边界
 

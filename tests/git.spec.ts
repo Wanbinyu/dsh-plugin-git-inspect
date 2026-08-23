@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -45,7 +45,7 @@ function call(name: string, args: unknown = {}) {
 
 describe('dsh-plugin-git-inspect', () => {
   beforeEach(async () => {
-    workspace = await mkdtemp(join(tmpdir(), 'dsh-git-inspect-'))
+    workspace = await realpath(await mkdtemp(join(tmpdir(), 'dsh-git-inspect-')))
     await writeFile(join(workspace, 'README.md'), '# fixture\n')
     await writeFile(join(workspace, 'tracked.txt'), 'before\n')
     ctx = new Context()

@@ -146,7 +146,7 @@ npm install
 npm run verify
 ```
 
-The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, diff summaries, revisions, refs, conflicts, blame, stashes, worktrees, path-filtered history, bounded output, cancellation/error paths, and argv safety. `verify` runs type checking, tests, the build, and package-content validation; GitHub Actions executes it on Node.js 22 under both Ubuntu and Windows.
+The integration suite creates temporary repositories and exercises the real `git` executable through the local Harness subprocess provider. It covers branch status, working-tree and staged diffs, diff summaries, revisions, refs, conflicts, blame, stashes, worktrees, path-filtered history, bounded output, cancellation/error paths, and argv safety. `verify` runs type checking, tests, the build, and package-content validation; GitHub Actions executes it on Node.js 22 under Ubuntu, Windows, and macOS.
 
 ## Scope
 
