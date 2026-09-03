@@ -1,6 +1,6 @@
 # dsh-plugin-git-inspect
 
-[简体中文](README.md) | [English](README.en.md)
+简体中文 | [English](README.en.md)
 
 [![许可证：MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
