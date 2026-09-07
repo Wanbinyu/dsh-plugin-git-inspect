@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
@@ -35,7 +35,7 @@ function agent() {
 
 function call(name: string, args: unknown = {}) {
   return ctx.tools.execute({
-    callId: CallId(`git-test-${++calls}`),
+    callId: ToolCallId(`git-test-${++calls}`),
     name,
     arguments: args,
     signal: new AbortController().signal,
@@ -166,7 +166,7 @@ describe('dsh-plugin-git-inspect', () => {
     const missing = await mkdtemp(join(tmpdir(), 'dsh-git-no-repo-'))
     try {
       const result = await ctx.tools.execute({
-        callId: CallId(`git-test-${++calls}`),
+        callId: ToolCallId(`git-test-${++calls}`),
         name: 'git_status',
         arguments: {},
         signal: new AbortController().signal,
