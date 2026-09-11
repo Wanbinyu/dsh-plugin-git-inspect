@@ -1,6 +1,6 @@
 # dsh-plugin-git-inspect
 
-> **Unreleased source compatibility fix (2026-09-11)**: current source targets Harness `0.1.5-rc.2` and passes the `0.1.1-rc.2` baseline. Web clients no longer request the removed `@deepseek-ai/dsh-client-runtime/client` module. Companion bundles the standalone Store engine and supports the new pending-interaction hook; billing retains legacy streamed usage and modern final usage. No npm package, Release, or installer was published. Release links below still download older builds. For a `0.1.5` host, build this source with `npm ci && npm run verify`, then install a local `npm pack` archive. Source compatibility does not change existing release archives.
+> **v0.3.6 compatibility update**: verified against Harness `0.1.5-rc.2` and the `0.1.1-rc.2` baseline. Web plugins no longer request the retired runtime module. Download links below target the fixed archive; other host versions require verification.
 
 
 [简体中文](README.md) | [English](README.en.md)
@@ -51,14 +51,14 @@ The working directory comes from the active Harness session (`session.header.cwd
   - `@deepseek-ai/dsh-subprocess`
 - A subprocess implementation, such as `@deepseek-ai/dsh-subprocess-local`.
 
-`v0.3.5` is type-checked, tested, built, and package-validated against DeepSeek Harness `0.1.2-rc.1` while retaining compatibility with `0.1.0-rc.5` through `rc.8` and `0.1.1-rc.1` through `rc.2`.
+`v0.3.6` is type-checked, tested, built, and package-validated against DeepSeek Harness `0.1.2-rc.1` while retaining compatibility with `0.1.0-rc.5` through `rc.8` and `0.1.1-rc.1` through `rc.2`.
 
 ## Install As A Bundle
 
 The repository ships `cordis.patch.yml` and declares `dsh.bundle` in `package.json`. With the Harness CLI installed, add it to the `web` profile:
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.5/dsh-plugin-git-inspect-0.3.5.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.6/dsh-plugin-git-inspect-0.3.6.tgz
 ```
 
 Restart dsh after installation. The bundle inserts the `git-inspect` row and installs the plugin runtime. You can inspect or customize [`cordis.patch.yml`](cordis.patch.yml).

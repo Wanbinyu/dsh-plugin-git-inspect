@@ -1,6 +1,6 @@
 # dsh-plugin-git-inspect
 
-> **源码兼容性修复（2026-09-11，尚未发布）**：当前源码已适配 Harness `0.1.5-rc.2`，并通过 `0.1.1-rc.2` 基线回归。Web 插件不再请求已移除的 `@deepseek-ai/dsh-client-runtime/client`；Companion 改用独立 Store 引擎，并兼容新版等待交互状态；计费投影兼容新版最终用量事件。本次没有发布 npm 包、Release 或新安装包。下面的 Release 下载链接仍是旧构建，不能用于验证新版宿主修复；使用 `0.1.5` 时请从当前源码执行 `npm ci && npm run verify`，再本地 `npm pack` 后安装。不要把源码兼容性当成旧下载包的兼容性。
+> **v0.3.6 兼容性修复**：适配 Harness `0.1.5-rc.2`，并通过 `0.1.1-rc.2` 回归。修复旧 runtime 模块缺失问题；下方下载链接指向本次修复包。其他宿主版本请先验证兼容性。
 
 
 简体中文 | [English](README.en.md)
@@ -51,14 +51,14 @@
   - `@deepseek-ai/dsh-subprocess`
 - 还需要一个 subprocess 实现，例如 `@deepseek-ai/dsh-subprocess-local`。
 
-`v0.3.5` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、构建和打包验证，并保留 `0.1.0-rc.5` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
+`v0.3.6` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、构建和打包验证，并保留 `0.1.0-rc.5` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
 
 ## 作为 bundle 安装
 
 仓库根目录包含 `cordis.patch.yml`，并在 `package.json` 中声明了 `dsh.bundle`。在已经安装 Harness CLI 的环境中，可以将它加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.5/dsh-plugin-git-inspect-0.3.5.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.6/dsh-plugin-git-inspect-0.3.6.tgz
 ```
 
 安装后重启 dsh。bundle 会自动插入 `git-inspect` 配置行，并安装插件运行时。也可以直接查看或修改 [`cordis.patch.yml`](cordis.patch.yml)。
