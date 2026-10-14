@@ -28,7 +28,7 @@ export interface Config {
   maxBlameLineCount?: number
 }
 
-export const Config: z<Config> = z.object({
+export const Config = z.object({
   timeoutMs: z.number().default(DEFAULT_TIMEOUT_MS),
   maxOutputBytes: z.number().default(DEFAULT_MAX_OUTPUT_BYTES),
   stderrMaxBytes: z.number().default(DEFAULT_STDERR_MAX_BYTES),
@@ -37,7 +37,7 @@ export const Config: z<Config> = z.object({
   maxLogCount: z.number().default(DEFAULT_MAX_LOG_COUNT),
   defaultBlameLineCount: z.number().default(DEFAULT_BLAME_LINE_COUNT),
   maxBlameLineCount: z.number().default(DEFAULT_MAX_BLAME_LINE_COUNT),
-})
+}) as unknown as z<Config>
 
 type ResolvedConfig = Required<Config>
 type GitOperation = 'status' | 'diff' | 'diff_stat' | 'log' | 'show' | 'refs' | 'conflicts' | 'blame' | 'stash_list' | 'worktree_list'

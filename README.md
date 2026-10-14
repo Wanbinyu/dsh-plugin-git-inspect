@@ -1,6 +1,6 @@
 # dsh-plugin-git-inspect
 
-> **v0.3.6 兼容性修复**：适配 Harness `0.1.5-rc.2`，并通过 `0.1.1-rc.2` 回归。修复旧 runtime 模块缺失问题；下方下载链接指向本次修复包。其他宿主版本请先验证兼容性。
+> **v0.3.7 兼容性更新**：已对 Harness `0.2.1-alpha.3` 完成类型检查和测试。Peer 范围同时接受 `0.2.0-rc.2`、`0.1.5-rc.2` 和 `0.1.1-rc.2`。
 
 
 简体中文 | [English](README.en.md)
@@ -51,14 +51,14 @@
   - `@deepseek-ai/dsh-subprocess`
 - 还需要一个 subprocess 实现，例如 `@deepseek-ai/dsh-subprocess-local`。
 
-`v0.3.6` 已使用 DeepSeek Harness `0.1.2-rc.1` 完成类型、测试、构建和打包验证，并保留 `0.1.0-rc.5` 至 `rc.8`、`0.1.1-rc.1` 至 `rc.2` 的兼容分支。
+`v0.3.7` 已对 Harness `0.2.1-alpha.3` 完成类型检查和测试。Peer 范围同时接受 `0.2.0-rc.2`、`0.1.5-rc.2` 和 `0.1.1-rc.2`。
 
 ## 作为 bundle 安装
 
 仓库根目录包含 `cordis.patch.yml`，并在 `package.json` 中声明了 `dsh.bundle`。在已经安装 Harness CLI 的环境中，可以将它加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.6/dsh-plugin-git-inspect-0.3.6.tgz
+dsh plugin --profile web add https://github.com/Wanbinyu/dsh-plugin-git-inspect/releases/download/v0.3.7/dsh-plugin-git-inspect-0.3.7.tgz
 ```
 
 安装后重启 dsh。bundle 会自动插入 `git-inspect` 配置行，并安装插件运行时。也可以直接查看或修改 [`cordis.patch.yml`](cordis.patch.yml)。
